@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+	<!-- head -->
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<meta name="description" content="Analyze Manager">
+		<meta name="author" content="Optim">
+			<style type="text/css">
+				html, body {
+					height:100%;
+				}
+			</style>
+
+	</head>
+
+	<body>
+
+		<div>
+			<button class="rennzoku">連続再生</button> <button class="stop">停止</button>
+        </div>
+
+		<BR>
+
+		<div>
+			<button class="play">再生</button>
+			<audio src="audio/divtest_1.wav"></audio>
+	        <span>もしもし。</span>
+        </div>
+        <div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_2.wav"></audio>
+	        <span>お電話ありがとうございます。</span>
+        </div>
+        <div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_3.wav"></audio>
+			<span>サポートセンター土田が承ります。</span>
+        </div>
+        <div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_4.wav"></audio>
+			<span>すいません</span>
+        </div>
+        <div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_5.wav"></audio>
+			<span>解約について聞きたいのですが</span>
+        </div>
+        <div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_6.wav"></audio>
+			<span>解約の方法に関するご質問ですね。</span>
+		</div>
+
+        <div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_7.wav"></audio>
+			<span>解約は購入方法によって異なるため、</span>
+		</div>
+		<div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_8.wav"></audio>
+			<span>お客様の購入状況を確認させていただきます。</span>
+		</div>
+		<div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_9.wav"></audio>
+			<span>お客様はスマートフォンのアプリストアでの購入になりますでしょうか</span>
+		</div>
+		<div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_10.wav"></audio>
+			<span>いえ、</span>
+		</div>
+		<div>
+        	<button class="play">再生</button>
+			<audio src="audio/divtest_11.wav"></audio>
+			<span>ＥＣサイトで購入しました。</span>
+		</div>
+
+
+
+
+
+		<script src="js/libs/jquery.min.js"></script>
+
+		<script type="text/javascript">
+		$( function () {
+			var playFlg = false;
+			var index = 0;
+			var audios = $('audio');
+
+			var stop = function () {
+				// 再生中のaudioを全て停止する
+				audios.each(function(i, audio){
+					audio.pause();
+					audio.currentTime = 0;
+				});
+			}
+
+			// 連続再生ボタン押下時のイベント
+			$('.rennzoku').on('click', function() {
+				playFlg = true;
+				index = 0;
+
+				stop();
+
+				// 最初の要素を再生
+				audios[index].play();
+			})
+
+			// 再生ボタン押下時のイベント
+			$('.play').on('click', function() {
+				playFlg = false;
+				stop();
+				$(this).closest('div').find('audio')[0].play();
+			})
+
+			// 停止ボタン押下時のイベント
+			$('.stop').on('click', function() {
+				stop();
+			})
+
+			// 再生終了したら次の音声を選んでまた再生
+			var ended = function() {
+				if (playFlg) {
+					index++;
+					if (index >= audios.length) return;
+					audios[index].play();
+				}
+			}
+			audios.each(function(i, v){
+				v.addEventListener("ended", ended, false);
+			});
+		});
+        </script>
+	</body>
+</html>

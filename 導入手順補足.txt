@@ -1,0 +1,166 @@
+Apacheインストール
+・yum -y install httpd
+・yum install mod_ssl
+・SSLの設定を行う
+ssl.confに以下の設定をする
+ServerName ranunculus-callcenter.optim.cloud:443
+SSLCertificateFile /etc/pki/tls/certs/optim.cloud.crt
+SSLCertificateKeyFile /etc/pki/tls/private/optim.cloud.key
+SSLCertificateChainFile /etc/pki/tls/certs/optim.cloud_ServerCA.crt
+SSLCACertificateFile /etc/pki/tls/certs/optim.cloud_CA.crt
+
+Javaのインストール
+・yum localinstall ファイル名
+・yum localinstall /home/fsi/work/middle/jdk-8u151-linux-x64.rpm
+・暗号化対応
+　/usr/java/jdk1.8.0_151/jre/lib/securityにある
+　java.securityの
+　crypto.policy=unlimited
+　の行をアンコメントする
+　
+インストールの確認
+java -version
+
+インストール先のパス
+/usr/java/jdk1.8.0_151
+
+
+
+
+Oracleサイトからのダウンロードコマンド
+URLはOracleのダウンロードサイトで利用規約同意のラジオをチェック後に右クリックでリンクのURLをコピーして取得する
+wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" http://download.oracle.com/otn-pub/java/jdk/8u151-b12/e758a0de34e24606bca991d704f6dcbf/jdk-8u151-linux-x64.rpm
+
+
+
+tomcatのインストール
+・/opt/tomcatディレクトリを作成する
+	cd /opt
+	mkdir tomcat
+・/opt/tomcaにインストールファイルをコピーするし展開する
+	cd tomcat
+	cp /home/fsi/work/middle/apache-tomcat-8.5.23.tar.gz ./
+	tar -xzvf apache-tomcat-8.5.23.tar.gz
+	rm apache-tomcat-8.5.23.tar.gz
+	cd apache-tomcat-8.5.23/
+	mv * ../
+	rm -rf apache-tomcat-8.5.23
+・tomcatをサービス登録する
+	/etc/systemd/systemに以下内容のファイルを生成する
+	ファイル名：tomcat.service
+	内容：
+[Unit]
+Description=Apache Tomcat 8.5
+After=network.target
+
+[Service]
+User=root
+Group=root
+Type=oneshot
+PIDFile=/opt/tomcat/tmcat.pid
+RemainAfterExit=yes
+
+ExecStart=/opt/tomcat/bin/startup.sh
+ExecStop=/opt/tomcat/bin/shutdown.sh
+ExecReStart=/opt/tomcat/bin/shutdown.sh;/opt/tomcat/bin/startup.sh
+
+[Install]
+WantedBy=multi-user.target
+	
+	cd /etc/systemd/system
+	vi tomcat.service
+	chmod 755 tomcat.service
+	
+
+TOMCATの起動時オプションの設定
+/opt/tomcat/bin/catalina.shに以下を追記する
+export CATALINA_OPTS="-Xms2048M -Xmx2048M -Xmn512M"
+
+追加後はtomcat再起動して以下のコマンドで確認できる
+jcmd -l				現在動作中のJAVAプロセスのPIDを取得する
+jstat -gccapacity PID	メモリの使用量とかいろいろ出てくる
+
+
+Apache Tomcat 連携
+/etc/httpd/conf.modules.d/00-proxy.conf
+に
+
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_ajp_module modules/mod_proxy_ajp.so
+あるのを確認する
+
+
+Alias /document  /var/www/html
+ProxyPass /document !
+ProxyPass / ajp://localhost:8009/
+
+を追記する
+
+mysql 設定ファイル変更
+・/etc/my.confに以下の設定をする
+	[mysqld]
+	character-set-server=utf8mb4
+	collation-server = utf8mb4_general_ci
+	lower_case_table_names=1
+
+	[client]
+	default-character-set=utf8mb4
+	
+・mysqlを再起動する(service mysqld restart)
+・文字コードの設定が正しく反映されているか確認する
+	mysqlにrootでログインする
+	show variables like '%char%';
+
+・スキーマ作成
+	スキーマ名：ccs
+	create database ccs;
+	show databases;
+
+・userの作成
+	ユーザ名：ccs_user
+	パスワード：oX78nMjG#8
+
+	確認 ： select Host, User from mysql.user;
+	作成 ： create user 'ccs_user'@'localhost' identified by 'oX78nMjG#8';
+・権限の追加
+	ccs_userにccsスキーマに対してselect, update, insert, deleteの権限を与える
+	
+	確認 show GRANTS FOR 'ccs_user'@'localhost';
+	設定 GRANT SELECT,INSERT, UPDATE, DELETE ON ccs.* to 'ccs_user'@'localhost';
+
+
+war の配置
+・
+
+/usrにcallcentersolutionディレクトリを作成しその下に
+work、files、webapp、logsディレクトリを作成する
+cd /usr
+mkdir callcentersolution
+mkdir work
+mkdir webapp
+mkdir logs
+ln -s /mnt/drbd0/ccs_files files
+
+tomcat を一度起動すると
+/opt/tomcat/confにCatalinaディレクトリができるのでそこのlocalhostの下にコンテキストファイルを置く
+
+
+/opt/tomcat/webapps/ROOTの下のindex.jsp消す
+index.htmlを作成する
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+<!--
+        function index() {
+                window.location.href = "/CallCenterSolution/index.html";
+        }
+        index();
+-->
+</script>
+</head>
+</html>
+
+
+
+

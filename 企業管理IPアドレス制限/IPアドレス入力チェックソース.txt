@@ -1,0 +1,120 @@
+checkPermitIpAddressを登録と更新の入力チェックのところで呼ぶ
+
+
+	// -------------------------------------------------------------------------
+	/**
+	 * 接続元制限IPアドレスを1行ずつ読込各行の形式が正しいかチェックする
+	 * @param permitIpAddress IPアドレス
+	 * @throws RestException 入力エラーがある場合
+	 */
+	private void checkPermitIpAddress(String permitIpAddress) {
+		// 空の場合はチェックしない
+		if (permitIpAddress == null || permitIpAddress.isEmpty()) return;
+
+		// 文字数チェック(3000文字まで)
+		RestValidatorUtils.fieldValidate("#loginUser.permitIpAddress", permitIpAddress, false, 0, 3000);
+
+		// 改行コードで文字列を分割する
+		String[] rowData = permitIpAddress.split("(\\r\\n|\\n|\\r)");
+		int rowCount = 0;
+		for (String each : rowData) {
+			String text = each == null ? "" :  each.trim();
+
+			// 空行は飛ばす
+			if (text.isEmpty()) continue;
+
+			// 形式エラー
+			if (!isIpAddresFormat(text))  {
+				throw new RestException( ApiResultCode.INPUT_ERROR_FORMAT, text ) ;
+			}
+
+			// 50件以上IPアドレスが設定されている場合はエラー
+			if (++rowCount > permitIpAddressMaxCount) {
+				throw new RestException( ApiResultCode.ERROR_PERMIT_IP_ADDRESS_MAX_COUNT, permitIpAddressMaxCount.toString() ) ;
+			}
+		}
+	}
+
+	/**
+	 * IPアドレスの形式チェックを行う
+	 * @param checkString 検査対象文字列
+	 * @return IPアドレスのフォーマットの場合:true、それ以外：false
+	 */
+	private boolean isIpAddresFormat (String checkString) {
+		boolean isSubnetMask = ( checkString.indexOf( "/" ) >= 0 );
+
+		String address;
+		String subnet;
+		// サブネットビット取得
+		if (isSubnetMask) {
+			address = checkString.substring( 0, checkString.indexOf( "/" ) );
+			subnet = checkString.substring( checkString.indexOf( "/" ) + 1 );
+		} else {
+			address = checkString;
+			subnet = "";
+		}
+
+		// IPv4チェック
+		String[] addArray = address.split("\\.");
+		if (addArray.length == 4) {
+			try {
+				// IPアドレスの各桁が0～255以内の数値であるかチェックする
+				for (String each : addArray) {
+					int val = Integer.parseInt(each);
+					if (val < 0 || val > 255 ) return false;
+				}
+
+				// サブネットマスクが設定されている場合数値が範囲内かチェックする
+				if (isSubnetMask) {
+					int val = Integer.parseInt(subnet);
+					if (val < 0 || val > 32) return false;
+				}
+				// Inet4Addressのインスタンスを生成できない場合はエラー
+				if (!(InetAddress.getByName(address) instanceof Inet4Address)) {
+					return false;
+				}
+			} catch (Exception e) {
+				return false;
+			}
+			return true;
+		}
+
+		// IPv6チェック
+		addArray = address.split(":");
+		if (addArray.length >= 2 && addArray.length <= 8) {
+			try {
+				int emptyCnt = 0;
+				for (String each : addArray) {
+					// 空要素は一個のみ許容する
+					if (each == null || each.isEmpty()) {
+						emptyCnt++;
+						continue;
+					}
+
+					// 空要素が二つ以上の場合はエラー
+					if (emptyCnt > 1) return false;
+
+					// IPアドレスの各要素がが0～FFFF以内の16進数値であるかチェックする
+					int val = Integer.parseInt(each, 16);
+					if (val < 0x0000 || val > 0xFFFF) return false;
+				}
+
+				// サブネットマスクが設定されている場合数値が範囲内かチェックする
+				if (isSubnetMask) {
+					int val = Integer.parseInt(subnet);
+					if (val < 0 || val > 128) return false;
+				}
+
+				// Inet6Addressのインスタンスを生成できない場合はエラー
+				if (!(InetAddress.getByName(address) instanceof Inet6Address)) {
+					return false;
+				}
+			} catch (Exception e) {
+				return false;
+			}
+			return true;
+		}
+
+		// IPv4、IPv6の形式以外はエラー
+		return false;
+	}

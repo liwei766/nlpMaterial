@@ -1,0 +1,1 @@
+23	接続元制限IPアドレス	permitIpAddress	PERMIT_IP_ADDRESS	java.lang.String	65535				TEXT型で定義する																								
